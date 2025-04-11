@@ -38,17 +38,10 @@ Ensure the following are installed:
 
 ### MacOS / Linux
 ```bash
-# Clone the repository
-git clone https://github.com/nubizen/Montest.git
-cd Montest
-
-# Install dependencies
+git clone https://github.com/nubizen/Montx.git
+cd Montx
 npm install
-
-# Add your private key(s)
 nano private.key
-
-# Run the bot
 npm start
 ```
 
@@ -56,17 +49,10 @@ npm start
 
 ### Windows
 ```powershell
-# Clone the repository
-git clone https://github.com/nubizen/Montest.git
-cd Montest
-
-# Install dependencies
+git clone https://github.com/nubizen/Montx.git
+cd Montx
 npm install
-
-# Add your private key(s)
-notepad private.key
-
-# Run the bot
+nano private.key
 npm start
 ```
 
@@ -99,7 +85,7 @@ Use `private.key` to list multiple wallets, each processed in randomized cycles.
 
 ---
 
-## ”— Supported Integrations
+## — Supported Integrations
 
 | Function       | Platforms Supported                                             |
 |----------------|------------------------------------------------------------------|
@@ -110,10 +96,10 @@ Use `private.key` to list multiple wallets, each processed in randomized cycles.
 
 ---
 
-## •’ Last Updated  
+## Last Updated  
 **Fri Apr 11 03:09:46 UTC 2025**
 
 ---
 
-## “„ License  
+## License  
 Licensed under the **ISC License**.
