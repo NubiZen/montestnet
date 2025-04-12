@@ -13,6 +13,7 @@ class Dashboard {
       style: { bg: "#1c2526" },
     });
 
+    // Banner di atas, memanjang penuh
     this.banner = blessed.box({
       parent: this.screen,
       top: 0,
@@ -22,11 +23,12 @@ class Dashboard {
       valign: "middle",
       content: "{bold}{magenta-fg}◆ Monad Testnet Automation ◆{/bold}\n{magenta-fg}Github: rpchubs | Telegram: RPC_Community",
       tags: true,
-      border: { type: "double", fg: "magenta" },
+      border: { type: "line", fg: "magenta" },
       style: { fg: "white", bg: "#1c2526" },
       shadow: true,
     });
 
+    // Grid dimulai setelah banner (top: 3)
     this.grid = new contrib.grid({
       rows: 12,
       cols: 12,
@@ -39,9 +41,10 @@ class Dashboard {
   }
 
   initializeComponents() {
-    this.info = new InfoDisplay(this.grid, 0, 8, 5, 4);
+    // Layout baru: lebih seimbang dan memanfaatkan ruang
+    this.info = new InfoDisplay(this.grid, 0, 8, 4, 4); // Kanan atas: 4 baris, 4 kolom
 
-    this.log = this.grid.set(0, 0, 10, 8, contrib.log, {
+    this.log = this.grid.set(0, 0, 8, 8, contrib.log, {
       fg: "#00ff00",
       selectedFg: "#00ff00",
       label: "{bold}{cyan-fg}◆ Transaction Logs{/bold}",
@@ -54,7 +57,7 @@ class Dashboard {
       shadow: true,
     });
 
-    this.table = this.grid.set(5, 8, 5, 4, contrib.table, {
+    this.table = this.grid.set(4, 8, 8, 4, contrib.table, {
       keys: true,
       fg: "#d3d3d3",
       label: "{bold}{cyan-fg}◆ Service Status{/bold}",
@@ -162,6 +165,52 @@ class Dashboard {
       this.info.updateCycle(current, total);
       this.screen.render();
     }
+  }
+
+  showCountdown(totalDelay) {
+    return new Promise((resolve) => {
+      // Hapus komponen dashboard lama
+      if (this.banner) this.banner.detach();
+      if (this.log) this.log.detach();
+      if (this.table) this.table.detach();
+      if (this.info && this.info.infoBox) this.info.infoBox.detach();
+
+      const countdownBox = blessed.box({
+        parent: this.screen,
+        top: "center",
+        left: "center",
+        width: "50%",
+        height: 5,
+        align: "center",
+        valign: "middle",
+        content: "{bold}Waiting for next iteration...{/bold}\nTime remaining: 24:00:00",
+        tags: true,
+        border: { type: "line", fg: "#00d4ff" },
+        style: { fg: "white", bg: "#1c2526", border: { fg: "#00d4ff" } },
+        shadow: true,
+      });
+
+      let remainingTime = totalDelay;
+      const countdownInterval = setInterval(() => {
+        if (remainingTime <= 0) {
+          clearInterval(countdownInterval);
+          countdownBox.detach();
+          this.screen.render();
+          resolve();
+          return;
+        }
+        remainingTime -= 1000;
+        const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+        const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+        countdownBox.setContent(
+          `{bold}Waiting for next iteration...{/bold}\nTime remaining: ${hours.toString().padStart(2, "0")}:${minutes
+            .toString()
+            .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+        );
+        this.screen.render();
+      }, 1000);
+    });
   }
 }
 
