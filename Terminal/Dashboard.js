@@ -9,11 +9,9 @@ class Dashboard {
       title: "Monad Transaction Dashboard",
       autoPadding: true,
       fullUnicode: true,
-      cursor: { color: "white" },
       style: { bg: "#1c2526" },
     });
 
-    // Banner di atas, memanjang penuh
     this.banner = blessed.box({
       parent: this.screen,
       top: 0,
@@ -21,14 +19,13 @@ class Dashboard {
       width: "100%",
       align: "center",
       valign: "middle",
-      content: "{bold}{magenta-fg}◆ Monad Testnet Automation ◆{/bold}\n{magenta-fg}Github: rpchubs | Telegram: RPC_Community",
+      content: "{bold}{magenta-fg}◆ Monad Testnet Automation",
       tags: true,
       border: { type: "line", fg: "magenta" },
       style: { fg: "white", bg: "#1c2526" },
       shadow: true,
     });
 
-    // Grid dimulai setelah banner (top: 3)
     this.grid = new contrib.grid({
       rows: 12,
       cols: 12,
@@ -41,8 +38,7 @@ class Dashboard {
   }
 
   initializeComponents() {
-    // Layout baru: lebih seimbang dan memanfaatkan ruang
-    this.info = new InfoDisplay(this.grid, 0, 8, 4, 4); // Kanan atas: 4 baris, 4 kolom
+    this.info = new InfoDisplay(this.grid, 0, 8, 4, 4);
 
     this.log = this.grid.set(0, 0, 8, 8, contrib.log, {
       fg: "#00ff00",
@@ -57,7 +53,7 @@ class Dashboard {
       shadow: true,
     });
 
-    this.table = this.grid.set(4, 8, 8, 4, contrib.table, {
+    this.table = this.grid.set(4, 8, 4, 4, contrib.table, {
       keys: true,
       fg: "#d3d3d3",
       label: "{bold}{cyan-fg}◆ Service Status{/bold}",
@@ -78,7 +74,8 @@ class Dashboard {
 
     this.screen.on("resize", () => {
       if (this.log) this.log.emit("attach");
-      if (this.table) this.table.emit("attach");
+      if (this.info) this.info.infoBox.emit("attach");
+      if(this.table) this.table.emit("attach");
       this.screen.render();
     });
 
@@ -112,13 +109,6 @@ class Dashboard {
         headers: ["{bold}Service{/bold}", "{bold}Status{/bold}", "{bold}Last Update{/bold}"],
         data: formattedData,
       });
-      this.screen.render();
-    }
-  }
-
-  updateStats(progress) {
-    if (this.info) {
-      this.info.updateCycle(this.currentCycle || 0, this.totalCycles || 5);
       this.screen.render();
     }
   }
@@ -160,20 +150,25 @@ class Dashboard {
 
   setCycles(current, total) {
     if (this.info) {
-      this.currentCycle = current;
-      this.totalCycles = total;
       this.info.updateCycle(current, total);
       this.screen.render();
     }
   }
 
+  updateStats(progress) {
+    this.updateLog(`Progress: ${progress.toFixed(2)}%`);
+  }
+
+  updateLineChart(data) {
+    // Tidak digunakan karena line chart dihapus
+  }
+
   showCountdown(totalDelay) {
     return new Promise((resolve) => {
-      // Hapus komponen dashboard lama
       if (this.banner) this.banner.detach();
       if (this.log) this.log.detach();
-      if (this.table) this.table.detach();
       if (this.info && this.info.infoBox) this.info.infoBox.detach();
+      if(this.table) this.table.detach();
 
       const countdownBox = blessed.box({
         parent: this.screen,

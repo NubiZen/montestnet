@@ -18,8 +18,7 @@ const blessed = require("blessed");
 class Application {
   constructor(privateKey, selectedServiceKey) {
     this.privateKey = privateKey;
-    this.walletAddress = new ethers.Wallet(this.privateKey).address;
-    this.selectedServiceKey = selectedServiceKey; // Bisa 'all' atau kunci service spesifik
+    this.selectedServiceKey = selectedServiceKey;
     this.services = {};
     this.transactionHistory = [];
     this.cycleCount = 0;
@@ -71,7 +70,6 @@ class Application {
       };
 
       if (this.selectedServiceKey === "all") {
-        // Inisialisasi semua service
         for (const [key, info] of Object.entries(services)) {
           console.log(`[Initialize] Initializing ${info.name}...`);
           this.dashboard.updateLog(`Initializing ${info.name}...`);
@@ -86,7 +84,6 @@ class Application {
         }
         this.dashboard.updateTable([["All Services", "Active", new Date().toLocaleTimeString()]]);
       } else {
-        // Inisialisasi hanya service yang dipilih
         const info = services[this.selectedServiceKey];
         console.log(`[Initialize] Initializing ${info.name}...`);
         this.dashboard.updateLog(`Initializing ${info.name}...`);
@@ -106,7 +103,6 @@ class Application {
       return true;
     } catch (error) {
       console.error(`[Initialize] Initialization error: ${error.message}`);
-      console.error(`[Initialize] Stack trace: ${error.stack}`);
       this.dashboard.updateLog(`Initialization error: ${error.message}`);
       this.dashboard.updateStatus("Error");
       return false;
@@ -137,7 +133,6 @@ class Application {
       return true;
     } catch (error) {
       console.error(`[Start] Fatal error: ${error.message}`);
-      console.error(`[Start] Stack trace: ${error.stack}`);
       this.dashboard.updateLog(`Fatal error: ${error.message}`);
       this.dashboard.updateStatus("Error");
       return false;
@@ -157,7 +152,6 @@ class Application {
 
       const serviceStatus = [];
       if (this.selectedServiceKey === "all") {
-        // Jalankan semua service
         for (const [name, service] of Object.entries(this.services)) {
           try {
             console.log(`[Cycle] Running ${name}...`);
@@ -176,18 +170,37 @@ class Application {
               const result = await service.execute(amount);
               console.log(`[Cycle] ${name}: Executed - ${result.status}`);
               this.dashboard.updateLog(`${name}: Executed - ${result.status}`);
+            } else if (name === "uniswap") {
+              const tokenSymbols = Object.keys(config.contracts.uniswap.tokens);
+              const tokenSymbol = tokenSymbols[Math.floor(Math.random() * tokenSymbols.length)];
+              const swapEthResult = await service.swapEthForTokens(tokenSymbol, amount);
+              this.dashboard.updateLog(`uniswap: Swap MON -> ${tokenSymbol} => ${swapEthResult.status}`);
+              await Utils.delay(Utils.getRandomDelay());
+              const swapTokenResult = await service.swapTokensForEth(tokenSymbol);
+              this.dashboard.updateLog(`uniswap: Swap ${tokenSymbol} -> MON => ${swapTokenResult.status}`);
+            } else if (name === "monorail") {
+              const monorailResult = await service.sendTransaction();
+              this.dashboard.updateLog(`monorail: Transaction sent => ${monorailResult.status}`);
+            } else if (name === "deploy") {
+              const deployResult = await service.deployContracts(1);
+              if (deployResult && deployResult.length > 0) {
+                this.dashboard.updateLog(`Deploy contract: ${deployResult[0].status}`);
+              } else {
+                this.dashboard.updateLog("Deploy contract: Deployment result is empty");
+              }
+            } else if (name === "kitsu") {
+              const stakeKitsuResult = await service.stakeMON();
+              this.dashboard.updateLog(`${name}: Staked MON => ${stakeKitsuResult.status}`);
             }
             serviceStatus.pop();
             serviceStatus.push([name, "Active", new Date().toLocaleTimeString()]);
           } catch (error) {
             console.error(`[Cycle] ${name}: Error - ${error.message}`);
-            console.error(`[Cycle] Stack trace: ${error.stack}`);
             this.dashboard.updateLog(`${name}: Error - ${error.message}`);
             serviceStatus.push([name, "Error", new Date().toLocaleTimeString()]);
           }
         }
       } else {
-        // Jalankan hanya service yang dipilih
         const name = this.selectedServiceKey;
         const service = this.services[name];
         try {
@@ -207,12 +220,32 @@ class Application {
             const result = await service.execute(amount);
             console.log(`[Cycle] ${name}: Executed - ${result.status}`);
             this.dashboard.updateLog(`${name}: Executed - ${result.status}`);
+          } else if (name === "uniswap") {
+            const tokenSymbols = Object.keys(config.contracts.uniswap.tokens);
+            const tokenSymbol = tokenSymbols[Math.floor(Math.random() * tokenSymbols.length)];
+            const swapEthResult = await service.swapEthForTokens(tokenSymbol, amount);
+            this.dashboard.updateLog(`uniswap: Swap MON -> ${tokenSymbol} => ${swapEthResult.status}`);
+            await Utils.delay(Utils.getRandomDelay());
+            const swapTokenResult = await service.swapTokensForEth(tokenSymbol);
+            this.dashboard.updateLog(`uniswap: Swap ${tokenSymbol} -> MON => ${swapTokenResult.status}`);
+          } else if (name === "monorail") {
+            const monorailResult = await service.sendTransaction();
+            this.dashboard.updateLog(`monorail: Transaction sent => ${monorailResult.status}`);
+          } else if (name === "deploy") {
+            const deployResult = await service.deployContracts(1);
+            if (deployResult && deployResult.length > 0) {
+              this.dashboard.updateLog(`Deploy contract: ${deployResult[0].status}`);
+            } else {
+              this.dashboard.updateLog("Deploy contract: Deployment result is empty");
+            }
+          } else if (name ==="kitsu") {
+            const stakeKitsuResult = await service.stakeMON();
+            this.dashboard.updateLog(`${name}: Staked MON => ${stakeKitsuResult.status}`);
           }
           serviceStatus.pop();
           serviceStatus.push([name, "Active", new Date().toLocaleTimeString()]);
         } catch (error) {
           console.error(`[Cycle] ${name}: Error - ${error.message}`);
-          console.error(`[Cycle] Stack trace: ${error.stack}`);
           this.dashboard.updateLog(`${name}: Error - ${error.message}`);
           serviceStatus.push([name, "Error", new Date().toLocaleTimeString()]);
         }
@@ -228,7 +261,6 @@ class Application {
       console.log(`[Cycle] Updated wallet balance: ${formattedBalanceUpdated} MON`);
     } catch (error) {
       console.error(`[Cycle] Cycle error: ${error.message}`);
-      console.error(`[Cycle] Stack trace: ${error.stack}`);
       this.dashboard.updateLog(`Cycle error: ${error.message}`);
       this.dashboard.updateStatus("Error");
     }
@@ -236,6 +268,10 @@ class Application {
 }
 
 if (require.main === module) {
+  process.on("unhandledRejection", (error) => {
+    console.error("Unhandled rejection:", error);
+  });
+
   const { getPrivateKeys } = Utils;
   let privateKeys;
   try {
@@ -248,7 +284,6 @@ if (require.main === module) {
     console.log(`[Main] Found ${privateKeys.length} private keys to process`);
   } catch (error) {
     console.error("[Main] Error reading private keys:", error.message);
-    console.error("[Main] Stack trace:", error.stack);
     process.exit(1);
   }
 
@@ -304,7 +339,6 @@ if (require.main === module) {
         iteration++;
         console.log(`[Main] Starting iteration ${iteration} at ${new Date().toLocaleString()}`);
 
-        // Tampilkan menu untuk memilih service
         const selectedServiceKey = await showServiceMenu(sharedDashboard);
         console.log(`[Main] Selected service: ${selectedServiceKey === "all" ? "All Services" : selectedServiceKey}`);
 
@@ -325,25 +359,21 @@ if (require.main === module) {
             await Utils.delay(3000);
           } catch (error) {
             console.error(`[Main] Error processing wallet with private key ${Utils.maskedPrivateKey(key)}: ${error.message}`);
-            console.error(`[Main] Stack trace: ${error.stack}`);
           }
         }
 
         console.log(`[Main] All wallets processed for iteration ${iteration} at ${new Date().toLocaleString()}`);
 
-        // Hanya tampilkan hitung mundur jika memilih "all"
         if (selectedServiceKey === "all") {
           console.log("[Main] Waiting 24 hours before the next iteration...");
           await sharedDashboard.showCountdown(24 * 60 * 60 * 1000);
         } else {
-          // Jika bukan "all", lanjut ke iterasi berikutnya tanpa hitung mundur
           sharedDashboard.screen.destroy();
           sharedDashboard = new Dashboard();
           console.log("[Main] Proceeding to next iteration immediately...");
         }
       } catch (error) {
         console.error(`[Main] Unexpected error in iteration ${iteration}: ${error.message}`);
-        console.error(`[Main] Stack trace: ${error.stack}`);
         console.log("[Main] Waiting 24 hours before the next iteration despite the error...");
         await sharedDashboard.showCountdown(24 * 60 * 60 * 1000);
       }
@@ -352,7 +382,6 @@ if (require.main === module) {
 
   processWallets().catch((error) => {
     console.error("[Main] Fatal error in processWallets:", error.message);
-    console.error("[Main] Stack trace:", error.stack);
     process.exit(1);
   });
 }
