@@ -33,6 +33,7 @@ class Dashboard {
       top: 3,
     });
 
+    this.pendingUpdates = {}; // Store pending UI updates
     this.initializeComponents();
     this.setupListeners();
   }
@@ -43,7 +44,7 @@ class Dashboard {
     this.log = this.grid.set(0, 0, 8, 8, contrib.log, {
       fg: "#00ff00",
       selectedFg: "#00ff00",
-      label: "{bold}{cyan-fg}◆ Transaction Logs{/bold}",
+      label: "{bold}{cyan-fg}◆ Transaction Logs {/bold}",
       tags: true,
       border: { type: "line", fg: "#00d4ff" },
       style: { bg: "#1c2526", border: { fg: "#00d4ff" } },
@@ -53,20 +54,20 @@ class Dashboard {
       shadow: true,
     });
 
-    this.table = this.grid.set(4, 8, 4, 4, contrib.table, {
+    this.table = this.grid.set(4, 8, 6, 4, contrib.table, {
       keys: true,
       fg: "#d3d3d3",
-      label: "{bold}{cyan-fg}◆ Service Status{/bold}",
+      label: "{bold}{cyan-fg}◆ Service Status {/bold}",
       tags: true,
       columnSpacing: 2,
-      columnWidth: [15, 10, 15],
+      columnWidth: [20, 12, 20],
       border: { type: "line", fg: "#00d4ff" },
       style: { bg: "#1c2526", border: { fg: "#00d4ff" } },
       shadow: true,
+      truncate: true,
     });
 
     this.updateTable([["Service", "Status", "Last Update"]]);
-    this.screen.render();
   }
 
   setupListeners() {
@@ -75,7 +76,7 @@ class Dashboard {
     this.screen.on("resize", () => {
       if (this.log) this.log.emit("attach");
       if (this.info) this.info.infoBox.emit("attach");
-      if(this.table) this.table.emit("attach");
+      if (this.table) this.table.emit("attach");
       this.screen.render();
     });
 
@@ -94,8 +95,7 @@ class Dashboard {
   updateLog(message) {
     if (this.log) {
       const timestamp = new Date().toLocaleTimeString();
-      this.log.log(`{bold}{green-fg}► [${timestamp}] {/bold}${message}`);
-      this.screen.render();
+      this.pendingUpdates.log = `{bold}{green-fg}► [${timestamp}] {/bold}${message}`;
     }
   }
 
@@ -103,55 +103,51 @@ class Dashboard {
     if (this.table) {
       const formattedData = data.map(row => {
         const statusColor = row[1] === "Active" ? "{green-fg}" : row[1] === "Error" ? "{red-fg}" : "{yellow-fg}";
-        return [row[0], `${statusColor}${row[1]}{/}`, row[2]];
+        const service = row[0].length > 18 ? row[0].slice(0, 15) + "..." : row[0];
+        const status = row[1].length > 10 ? row[1].slice(0, 7) + "..." : `${statusColor}${row[1]}{/}`;
+        const lastUpdate = row[2].length > 18 ? row[2].slice(0, 15) + "..." : row[2];
+        return [service, status, lastUpdate];
       });
-      this.table.setData({
+      this.pendingUpdates.table = {
         headers: ["{bold}Service{/bold}", "{bold}Status{/bold}", "{bold}Last Update{/bold}"],
         data: formattedData,
-      });
-      this.screen.render();
+      };
     }
   }
 
   updateWallet(walletAddress) {
     if (this.info) {
-      this.info.updateWallet(walletAddress);
-      this.screen.render();
+      this.pendingUpdates.wallet = walletAddress;
     }
   }
 
   updateBalance(balance) {
     if (this.info) {
-      this.info.updateBalance(balance);
-      this.screen.render();
+      this.pendingUpdates.balance = balance;
     }
   }
 
   updateStatus(status) {
     if (this.info) {
-      this.info.updateStatus(status);
-      this.screen.render();
+      this.pendingUpdates.status = status;
     }
   }
 
   updateNetwork(network) {
     if (this.info) {
-      this.info.updateNetwork(network);
-      this.screen.render();
+      this.pendingUpdates.network = network;
     }
   }
 
   updateTokens(tokens) {
     if (this.info) {
-      this.info.updateTokens(tokens);
-      this.screen.render();
+      this.pendingUpdates.tokens = tokens;
     }
   }
 
-  setCycles(current, total) {
+  updateCycles(current, total) {
     if (this.info) {
-      this.info.updateCycle(current, total);
-      this.screen.render();
+      this.pendingUpdates.cycles = { current, total };
     }
   }
 
@@ -163,12 +159,49 @@ class Dashboard {
     // Tidak digunakan karena line chart dihapus
   }
 
+  render() {
+    // Apply all pending updates and render once
+    if (this.pendingUpdates.log) {
+      this.log.log(this.pendingUpdates.log);
+      delete this.pendingUpdates.log;
+    }
+    if (this.pendingUpdates.table) {
+      this.table.setData(this.pendingUpdates.table);
+      delete this.pendingUpdates.table;
+    }
+    if (this.pendingUpdates.wallet) {
+      this.info.updateWallet(this.pendingUpdates.wallet);
+      delete this.pendingUpdates.wallet;
+    }
+    if (this.pendingUpdates.balance) {
+      this.info.updateBalance(this.pendingUpdates.balance);
+      delete this.pendingUpdates.balance;
+    }
+    if (this.pendingUpdates.status) {
+      this.info.updateStatus(this.pendingUpdates.status);
+      delete this.pendingUpdates.status;
+    }
+    if (this.pendingUpdates.network) {
+      this.info.updateNetwork(this.pendingUpdates.network);
+      delete this.pendingUpdates.network;
+    }
+    if (this.pendingUpdates.tokens) {
+      this.info.updateTokens(this.pendingUpdates.tokens);
+      delete this.pendingUpdates.tokens;
+    }
+    if (this.pendingUpdates.cycles) {
+      this.info.updateCycle(this.pendingUpdates.cycles.current, this.pendingUpdates.cycles.total);
+      delete this.pendingUpdates.cycles;
+    }
+    this.screen.render();
+  }
+
   showCountdown(totalDelay) {
     return new Promise((resolve) => {
       if (this.banner) this.banner.detach();
       if (this.log) this.log.detach();
       if (this.info && this.info.infoBox) this.info.infoBox.detach();
-      if(this.table) this.table.detach();
+      if (this.table) this.table.detach();
 
       const countdownBox = blessed.box({
         parent: this.screen,
