@@ -38,8 +38,8 @@ Ensure the following are installed:
 
 ### MacOS / Linux
 ```bash
-git clone https://github.com/nubizen/Montx.git
-cd Montx
+git clone https://github.com/nubizen/montestnet.git
+cd montestnet
 npm install
 nano private.key
 npm start
@@ -49,8 +49,8 @@ npm start
 
 ### Windows
 ```powershell
-git clone https://github.com/nubizen/Montx.git
-cd Montx
+git clone https://github.com/nubizen/montestnet.git
+cd montestnet
 npm install
 nano private.key
 npm start
