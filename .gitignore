@@ -1,2 +1,17 @@
+# Ignore node modules (kalau pakai Node.js)
 node_modules/
-secrets.json
+
+# Ignore Python environments
+venv/
+.env/
+
+# Ignore common IDE files
+*.log
+*.pyc
+__pycache__/
+.DS_Store
+.idea/
+.vscode/
+
+# Ignore custom modules folder (misalnya 'module')
+module/
